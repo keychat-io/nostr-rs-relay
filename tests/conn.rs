@@ -340,6 +340,7 @@ mod tests {
             content: "".to_owned(),
             sig: "0".to_owned(),
             tagidx: None,
+            cashu: None,
         };
 
         let c = event.to_canonical().unwrap();

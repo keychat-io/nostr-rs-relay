@@ -29,7 +29,10 @@ lazy_static! {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct EventCmd {
     cmd: String, // expecting static "EVENT"
-    event: Event,
+    pub(crate) event: Event,
+    // [EVENT, event, cashu]
+    #[serde(default)]
+    pub(crate) cashu: Option<String>,
 }
 
 impl EventCmd {
@@ -56,6 +59,8 @@ pub struct Event {
     // Optimization for tag search, built on demand.
     #[serde(skip)]
     pub tagidx: Option<HashMap<char, HashSet<String>>>,
+    #[serde(skip)]
+    pub cashu: Option<String>,
 }
 
 /// Simple tag type for array of array of strings.
@@ -130,6 +135,7 @@ impl Event {
             content: "".to_owned(),
             sig: "0".to_owned(),
             tagidx: None,
+            cashu: None,
         }
     }
 
@@ -436,6 +442,7 @@ impl From<nostr::Event> for Event {
             sig: nostr_event.sig.to_string(),
             delegated_by: None,
             tagidx: None,
+            cashu: None,
         }
     }
 }
@@ -472,12 +479,8 @@ mod tests {
         let mut event = Event::simple_event();
         event.tags = vec![vec!["e".to_owned(), "foo".to_owned()]];
         event.build_index();
-        assert!(
-            event.generic_tag_val_intersect(
-                'e',
-                &HashSet::from(["foo".to_owned(), "bar".to_owned()])
-            )
-        );
+        assert!(event
+            .generic_tag_val_intersect('e', &HashSet::from(["foo".to_owned(), "bar".to_owned()])));
     }
 
     #[test]
@@ -522,6 +525,7 @@ mod tests {
             content: "this is a test".to_owned(),
             sig: "abcde".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         let c = e.to_canonical();
         let expected = Some(r#"[0,"012345",501234,1,[],"this is a test"]"#.to_owned());
@@ -550,6 +554,7 @@ mod tests {
             content: "this is a test".to_owned(),
             sig: "abcde".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         let v = e.tag_values_by_name("e");
         assert_eq!(v, vec!["foo", "bar", "baz"]);
@@ -576,6 +581,7 @@ mod tests {
             content: "this is a test".to_owned(),
             sig: "abcde".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         let v = e.tag_values_by_name("x");
         // asking for tags that don't exist just returns zero-length vector
@@ -601,6 +607,7 @@ mod tests {
             content: "this is a test".to_owned(),
             sig: "abcde".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         let c = e.to_canonical();
         let expected_json = r###"[0,"012345",501234,1,[["#e","aoeu"],["#p","aaaa","ws://example.com"]],"this is a test"]"###;

@@ -102,6 +102,16 @@ pub struct PayToRelay {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(unused)]
+pub struct PayToRelayByCashu {
+    pub enabled: bool,
+    pub cost_per_event: u64, // Cost author to pay per event
+    pub mints: Vec<url::Url>,
+    pub kinds: Option<Vec<u64>>,
+    pub unit: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(unused)]
 pub struct Diagnostics {
     pub tracing: bool, // enables tokio console-subscriber
 }
@@ -186,6 +196,7 @@ pub struct Settings {
     pub limits: Limits,
     pub authorization: Authorization,
     pub pay_to_relay: PayToRelay,
+    pub pay_to_relay_by_cashu: PayToRelayByCashu,
     pub verified_users: VerifiedUsers,
     pub retention: Retention,
     pub options: Options,
@@ -327,6 +338,13 @@ impl Default for Settings {
                 direct_message: false,
                 secret_key: None,
                 processor: Processor::LNBits,
+            },
+            pay_to_relay_by_cashu: PayToRelayByCashu {
+                enabled: false,
+                cost_per_event: 0,
+                mints: vec![],
+                kinds: None,
+                unit: "sat".to_string(),
             },
             verified_users: VerifiedUsers {
                 mode: VerifiedUsersMode::Disabled,

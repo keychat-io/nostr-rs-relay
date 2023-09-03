@@ -57,6 +57,9 @@ fn main() {
         process::exit(1);
     });
 
+    // dedup by cashu mint url
+    settings.pay_to_relay_by_cashu.mints.dedup();
+
     // setup tracing
     if settings.diagnostics.tracing {
         // enable tracing with tokio-console

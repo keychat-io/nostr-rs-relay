@@ -242,3 +242,21 @@ limit_scrapers = false
 
 # optional if `direct_message=false`
 #secret_key = "<nostr nsec>"
+
+# [pay_to_relay_by_cashu]
+# # Enable pay to relay
+# enabled = true
+
+# # The cost in sats per post
+# cost_per_event = 1
+
+# timeout_ms= 3000
+# database="relay.red"
+
+# mints = [
+#     "https://8333.space:3338"
+# ]
+
+# # only pay for this kinds it not empty
+# kinds = [4]
+

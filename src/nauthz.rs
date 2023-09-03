@@ -90,6 +90,7 @@ impl EventAuthzService {
                 created_at: event.created_at,
                 kind: event.kind,
                 content: event.content.clone(),
+                cashu: event.cashu.clone(),
                 tags: tags_to_protobuf(&event.tags),
             };
             let svr_res = c

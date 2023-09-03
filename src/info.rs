@@ -32,6 +32,22 @@ pub struct Fees {
 pub struct Fee {
     amount: u64,
     unit: String,
+    // Cashu
+    #[serde(skip_serializing_if = "Option::is_none")]
+    method: Option<PaymentMethod>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kinds: Option<Vec<u64>>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub enum PaymentMethod {
+    Cashu { mints: Vec<String> },
+}
+
+impl PaymentMethod {
+    pub fn cashu(mints: Vec<String>) -> Self {
+        Self::Cashu { mints }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -75,53 +91,69 @@ impl From<Settings> for RelayInfo {
 
         let i = c.info;
         let p = c.pay_to_relay;
+        let pc = c.pay_to_relay_by_cashu;
 
         let limitations = Limitation {
-            payment_required: Some(p.enabled),
+            payment_required: Some(p.enabled || pc.enabled),
             restricted_writes: Some(
                 p.enabled
+                    || pc.enabled
                     || c.verified_users.is_enabled()
                     || c.authorization.pubkey_whitelist.is_some()
                     || c.grpc.restricts_write,
             ),
         };
 
-        let (payment_url, fees) = if p.enabled {
-            let admission_fee = if p.admission_cost > 0 {
+        let (mut payment_url, mut fees) = (None, None);
+        if p.enabled || pc.enabled {
+            let admission_fee = if p.enabled && p.admission_cost > 0 {
                 Some(vec![Fee {
                     amount: p.admission_cost * 1000,
                     unit: UNIT.to_string(),
+                    method: None,
+                    kinds: None,
                 }])
             } else {
                 None
             };
 
-            let post_fee = if p.cost_per_event > 0 {
-                Some(vec![Fee {
+            let mut post_fee = vec![];
+            if p.enabled && p.cost_per_event > 0 {
+                post_fee.push(Fee {
                     amount: p.cost_per_event * 1000,
                     unit: UNIT.to_string(),
-                }])
-            } else {
-                None
-            };
+                    method: None,
+                    kinds: None,
+                })
+            }
 
-            let fees = Fees {
+            if pc.enabled {
+                post_fee.push(Fee {
+                    amount: pc.cost_per_event,
+                    unit: pc.unit.to_string(),
+                    method: Some(PaymentMethod::cashu(
+                        pc.mints.iter().map(|m| m.as_str().to_owned()).collect(),
+                    )),
+                    kinds: pc.kinds.clone(),
+                })
+            }
+
+            fees = Some(Fees {
                 admission: admission_fee,
-                publication: post_fee,
-            };
+                publication: if post_fee.is_empty() {
+                    None
+                } else {
+                    Some(post_fee)
+                },
+            });
 
-            let payment_url = if p.enabled && i.relay_url.is_some() {
-                Some(format!(
+            if p.enabled && i.relay_url.is_some() {
+                payment_url = Some(format!(
                     "{}join",
                     i.relay_url.clone().unwrap().replace("ws", "http")
                 ))
-            } else {
-                None
-            };
-            (payment_url, Some(fees))
-        } else {
-            (None, None)
-        };
+            }
+        }
 
         RelayInfo {
             id: i.relay_url,

@@ -996,17 +996,22 @@ fn convert_to_msg(msg: &str, max_bytes: Option<usize>) -> Result<NostrMessage> {
     let parsed_res: Result<NostrMessage> =
         serde_json::from_str(msg).map_err(std::convert::Into::into);
     match parsed_res {
-        Ok(m) => {
+        Ok(mut m) => {
             if let NostrMessage::SubMsg(_) = m {
                 // note; this only prints the first 16k of a REQ and then truncates.
                 trace!("REQ: {:?}", msg);
             };
-            if let NostrMessage::EventMsg(_) = m {
+            if let NostrMessage::EventMsg(ref mut m) = m {
                 if let Some(max_size) = max_bytes {
                     // check length, ensure that some max size is set.
                     if msg.len() > max_size && max_size > 0 {
                         return Err(Error::EventMaxLengthError(msg.len()));
                     }
+                }
+
+                let token = m.cashu.take();
+                if m.cashu.is_none() {
+                    m.event.cashu = token;
                 }
             }
             Ok(m)
@@ -1276,7 +1281,7 @@ async fn nostr_server(
                                     // Write this to the database.
                                     let auth_pubkey = conn.auth_pubkey().and_then(|pubkey| hex::decode(pubkey).ok());
                                     let submit_event = SubmittedEvent {
-                                        event: e.clone(),
+                                        event: e,
                                         notice_tx: notice_tx.clone(),
                                         source_ip: conn.ip().to_string(),
                                         origin: client_info.origin.clone(),
@@ -1284,6 +1289,7 @@ async fn nostr_server(
                                         auth_pubkey };
                                     event_tx.send(submit_event).await.ok();
                                     client_published_event_count += 1;
+                                   // send e to payment
                                 } else {
                                     info!("client: {} sent a far future-dated event", cid);
                                     if let Some(fut_sec) = settings.options.reject_future_seconds {

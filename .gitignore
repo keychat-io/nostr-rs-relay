@@ -2,3 +2,5 @@
 nostr.db
 nostr.db-*
 justfile
+configdev.toml
+nostr-rs-relay

@@ -447,6 +447,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -466,6 +467,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -485,6 +487,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(!s.interested_in_event(&e));
         Ok(())
@@ -505,6 +508,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -529,6 +533,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s_in.interested_in_event(&e));
         assert!(!s_before.interested_in_event(&e));
@@ -551,6 +556,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(!s.interested_in_event(&e));
         Ok(())
@@ -570,6 +576,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -589,6 +596,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -608,6 +616,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -627,6 +636,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(s.interested_in_event(&e));
         Ok(())
@@ -646,6 +656,7 @@ mod tests {
             content: "".to_owned(),
             sig: "".to_owned(),
             tagidx: None,
+            cashu: None,
         };
         assert!(!s.interested_in_event(&e));
         Ok(())
