@@ -17,6 +17,7 @@ message Event {
   string content = 5;          // arbitrary event contents
   repeated TagEntry tags = 6;  // event tag array
   bytes sig = 7;               // 32-byte signature of the event id
+  optional string cashu = 8;            // optional cashu token
   // Individual values for a single tag
   message TagEntry {
     repeated string values = 1;
