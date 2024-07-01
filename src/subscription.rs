@@ -281,6 +281,20 @@ impl Subscription {
         }
         false
     }
+
+    /// Is this subscription defined tags contain 'p' in a query
+    pub fn contains_recipient(&self) -> bool {
+        for f in &self.filters {
+            if let Some(tags) = f.tags.as_ref() {
+                for (key, val) in tags {
+                    if *key == 'p' && val.iter().count() >= 1 {
+                        return true
+                    }
+                }
+            }
+        }
+        false
+    }
 }
 
 fn prefix_match(prefixes: &[String], target: &str) -> bool {
@@ -689,6 +703,15 @@ mod tests {
         assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984],"authors":["aaaa"]}]"#)?.is_scraper());
         assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"ids": ["aaaa"]}]"#)?.is_scraper());
         assert!(!serde_json::from_str::<Subscription>(r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,4]}]"##)?.is_scraper());
+        Ok(())
+    }
+
+    #[test]
+    fn contains_recipient() -> Result<()> {
+        assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984],"since": 123,"limit":1}]"#)?.contains_recipient());
+        assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984]},{"kinds": [1984],"authors":["aaaa"]}]"#)?.contains_recipient());
+        assert!(serde_json::from_str::<Subscription>(r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,4]}]"##)?.contains_recipient());
+        assert!(!serde_json::from_str::<Subscription>(r##"["REQ","some-id",{"#e": ["aaaa"],"kinds":[1,4,6]}]"##)?.contains_recipient());
         Ok(())
     }
 }

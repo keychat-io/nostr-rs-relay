@@ -1352,6 +1352,11 @@ async fn nostr_server(
                             if let Some(ref lim) = sub_lim_opt {
                                 lim.until_ready_with_jitter(jitter).await;
                             }
+                            if !s.contains_recipient() {
+                                info!("subscription need pubkey, ignoring (cid: {}, sub: {:?})", cid, s.id);
+                                ws_stream.send(Message::Text(format!("[\"EOSE\",\"{}\"]", s.id))).await.ok();
+                                continue
+                            }
                             if settings.limits.limit_scrapers && s.is_scraper() {
                                 info!("subscription was scraper, ignoring (cid: {}, sub: {:?})", cid, s.id);
                                 ws_stream.send(Message::Text(format!("[\"EOSE\",\"{}\"]", s.id))).await.ok();

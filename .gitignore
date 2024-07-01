@@ -4,3 +4,5 @@ nostr.db-*
 justfile
 configdev.toml
 nostr-rs-relay
+.idea
+.DS_Store
