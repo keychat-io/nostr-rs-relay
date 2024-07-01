@@ -45,8 +45,8 @@ pub struct ReqFilter {
 
 impl Serialize for ReqFilter {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
         if let Some(ids) = &self.ids {
@@ -80,8 +80,8 @@ impl Serialize for ReqFilter {
 
 impl<'de> Deserialize<'de> for ReqFilter {
     fn deserialize<D>(deserializer: D) -> Result<ReqFilter, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let received: Value = Deserialize::deserialize(deserializer)?;
         let filter = received.as_object().ok_or_else(|| {
@@ -184,8 +184,8 @@ impl<'de> Deserialize<'de> for Subscription {
     /// Custom deserializer for subscriptions, which have a more
     /// complex structure than the other message types.
     fn deserialize<D>(deserializer: D) -> Result<Subscription, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let mut v: Value = Deserialize::deserialize(deserializer)?;
         // this should be a 3-or-more element array.
@@ -280,6 +280,31 @@ impl Subscription {
             }
         }
         false
+    }
+
+    /// Is this subscription defined tags contain 'p' in a query for encrypted messages
+    pub fn is_not_encrypted_or_contains_recipient(&self) -> bool {
+        // ["REQ", <subscription_id>, <filters1>, <filters2>, ...]
+        // https://docs.rs/nostr/0.35.0/src/nostr/event/kind.rs.html#93
+        for f in &self.filters {
+            // direct get by id
+            if f.ids.as_ref().map(|ids| ids.len() >= 1).unwrap_or(false) {
+                continue;
+            }
+
+            if f.kinds
+                .as_ref()
+                .map(|ks| ks.is_empty() || ks.iter().any(|k| [4, 1059].contains(k)))
+                .unwrap_or(true)
+            {
+                // #p
+                let p = f.tags.as_ref().and_then(|tags| tags.get(&'p'));
+                if p.map(|p| p.is_empty()).unwrap_or(true) {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }
 
@@ -684,11 +709,64 @@ mod tests {
 
     #[test]
     fn is_scraper() -> Result<()> {
-        assert!(serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984],"since": 123,"limit":1}]"#)?.is_scraper());
-        assert!(serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984]},{"kinds": [1984],"authors":["aaaa"]}]"#)?.is_scraper());
-        assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"kinds": [1984],"authors":["aaaa"]}]"#)?.is_scraper());
-        assert!(!serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"ids": ["aaaa"]}]"#)?.is_scraper());
-        assert!(!serde_json::from_str::<Subscription>(r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,4]}]"##)?.is_scraper());
+        assert!(serde_json::from_str::<Subscription>(
+            r#"["REQ","some-id",{"kinds": [1984],"since": 123,"limit":1}]"#
+        )?
+        .is_scraper());
+        assert!(serde_json::from_str::<Subscription>(
+            r#"["REQ","some-id",{"kinds": [1984]},{"kinds": [1984],"authors":["aaaa"]}]"#
+        )?
+        .is_scraper());
+        assert!(!serde_json::from_str::<Subscription>(
+            r#"["REQ","some-id",{"kinds": [1984],"authors":["aaaa"]}]"#
+        )?
+        .is_scraper());
+        assert!(
+            !serde_json::from_str::<Subscription>(r#"["REQ","some-id",{"ids": ["aaaa"]}]"#)?
+                .is_scraper()
+        );
+        assert!(!serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,4]}]"##
+        )?
+        .is_scraper());
+        Ok(())
+    }
+
+    #[test]
+    fn is_not_encrypted_or_contains_recipient() -> Result<()> {
+        assert!(serde_json::from_str::<Subscription>(
+            r#"["REQ","some-id",{"kinds": [1],"since": 123,"limit":1}]"#
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(serde_json::from_str::<Subscription>(
+            r#"["REQ","some-id",{"kinds": [2]},{"kinds": [1984],"authors":["aaaa"]}]"#
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,4]}]"##
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id",{"#p": ["aaaa"],"kinds":[1,1559]}]"##
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id",{"kinds":[1,1559], "ids":["0x00"]}]"##
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(!serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id",{"#e": ["aaaa"],"kinds":[1,4,6]}]"##
+        )?
+        .is_not_encrypted_or_contains_recipient());
+        assert!(
+            !serde_json::from_str::<Subscription>(r##"["REQ","some-id",{"kinds":[1,4,6]}]"##)?
+                .is_not_encrypted_or_contains_recipient()
+        );
+        assert!(!serde_json::from_str::<Subscription>(
+            r##"["REQ","some-id", {"#p": ["aaaa"],"kinds":[1,4]},{"#e": ["aaaa"],"kinds":[1,4,6]}]"##
+        )?
+        .is_not_encrypted_or_contains_recipient());
+
         Ok(())
     }
 }

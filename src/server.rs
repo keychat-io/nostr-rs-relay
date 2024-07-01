@@ -1383,6 +1383,11 @@ async fn nostr_server(
                                 ws_stream.send(Message::Text(format!("[\"EOSE\",\"{}\"]", s.id))).await.ok();
                                 continue
                             }
+                            if !s.is_not_encrypted_or_contains_recipient() {
+                                info!("subscribe encrypted messages need recipient, ignoring (cid: {}, sub: {:?})", cid, s.id);
+                                ws_stream.send(Message::Text(format!("[\"EOSE\",\"{}\"]", s.id))).await.ok();
+                                continue
+                            }
                             let (abandon_query_tx, abandon_query_rx) = oneshot::channel::<()>();
                             match conn.subscribe(s.clone()) {
                                 Ok(()) => {
